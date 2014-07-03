@@ -5,6 +5,14 @@
 # define HEIGHT 840
 # define WIDTH 1080
 
+typedef struct		s_img
+{
+	char			*data;
+	int				bpp;
+	int				sl;
+	int				end;
+}					t_img;
+
 typedef struct		s_map
 {
 	int				x;
