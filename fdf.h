@@ -5,6 +5,19 @@
 # define HEIGHT 840
 # define WIDTH 1080
 
+typedef struct		s_lex
+{
+	char			*str;
+	struct s_lex	*next;
+}					t_lex;
+
+typedef struct		s_prs
+{
+	int				y;
+	t_lex			*first;
+	t_lex			*last;
+}					t_prs;
+
 typedef struct		s_img
 {
 	char			*data;
@@ -25,9 +38,11 @@ typedef struct		s_env
 	void			*mlx;
 	void			*win;
 	int				x;
-	int				mx;
+//	int				mx;
 	int				y;
-	int				my;
+	int				mod;
+	int				mz;
+//	int				my;
 	t_map			**m;
 }					t_env;
 

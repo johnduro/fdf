@@ -1,6 +1,10 @@
 
 #include <unistd.h>
 #include <mlx.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "libft.h"
 #include "fdf.h"
 
@@ -52,38 +56,140 @@ int		error_fdf(int code)
 		ft_putstr_fd("fdf: malloc error\n", 2);
 	else if (code == -3)
 		ft_putstr_fd("fdf: could not open file\n", 2);
+	else if (code == -4)
+		ft_putstr_fd("fdf: map error\n", 2);
 	exit (code);
 }
 
-typedef struct			s_lex
+void	add_to_prs(t_prs *prs, char *tmp)
 {
-	char				*str;
-	struct s_lex		*next;
-}						t_lex;
+	t_lex	*new;
 
-typedef struct			s_prs
+	if ((new = (t_lex *)malloc(sizeof(*new))) == NULL)
+		error_fdf(-2);
+	new->str = ft_strdup(tmp);
+	new->next = NULL;
+	(prs->y)++;
+	if (prs->first == NULL)
+	{
+		prs->first = new;
+		prs->last = new;
+	}
+	else
+	{
+		prs->last->next = new;
+		prs->last = new;
+	}
+}
+
+int		get_x(char **tab)
 {
-	int					y;
-	t_lex				*first;
-	t_lex				*last;
-}						t_prs;
+	int		i;
+
+	i = 0;
+	while (tab[i])
+		i++;
+	return (i);
+}
+
+void	init_line(t_env *e, int y, char **tab)
+{
+	int		x;
+	int		val;
+
+	x = 0;
+	while (tab[x] && x < e->x)
+	{
+		val = ft_atoi(tab[x]);
+		if (val < 0 || val > 10)
+			error_fdf(-4);
+		e->m[y][x].z = val * e->mz;
+		e->m[y][x].x = (x + 1) * e->mod;
+		e->m[y][x].y = (y + 1) * e->mod;
+		x++;
+	}
+}
+
+void	get_mod(t_env *e)
+{
+	int		m;
+
+	if (e->x > e->y)
+		m = e->x;
+	else
+		m = e->y;
+	e->mod = WIDTH / (m + 1);
+	e->mz = e->mod / 10;
+}
+
+void	init_x(t_env *e, int y, char *str)
+{
+	char	**split;
+
+	split = ft_strsplit(str, ' ');
+	if (e->x == 0)
+	{
+		e->x = get_x(split);
+		get_mod(e);
+	}
+	else if (e->x != get_x(split))
+		error_fdf(-4);
+	if ((e->m[y] = (t_map*)malloc(sizeof(t_map) * e->x)) == NULL)
+		error_fdf(-2);
+	init_line(e, y, split);
+	ft_tabfree(&split);
+}
+
+void	treat_map(t_env *e, t_prs *prs)
+{
+	t_lex	*bwlx;
+	int		y;
+
+	y = 0;
+	e->y = prs->y;
+	if ((e->m = (t_map**)malloc(sizeof(t_map*) * e->y)) == NULL)
+		error_fdf(-2);
+	bwlx = prs->first;
+	while (y < e->y && bwlx)
+	{
+		init_x(e, y, bwlx->str);
+		y++;
+		bwlx = bwlx->next;
+	}
+}
+
+void	free_prs(t_prs *prs)
+{
+	t_lex	*bwlx;
+	t_lex	*keep;
+
+	bwlx = prs->first;
+	while (bwlx)
+	{
+		keep = bwlx->next;
+		free(bwlx);
+		bwlx = keep;
+	}
+	free(prs);
+}
 
 void	init_map(t_env *e, int fd)
 {
 	t_prs		*prs;
 	char		*tmp;
 
-	if ((prs = (t_env *)malloc(sizeof(*prs))) == NULL)
-		error_fd(-2);
+	if ((prs = (t_prs *)malloc(sizeof(*prs))) == NULL)
+		error_fdf(-2);
 	prs->y = 0;
 	prs->first = NULL;
 	prs->last = NULL;
-	while (get_next_line(fd, &tmp))
+	while (get_next_line(fd, &tmp) > 0)
 	{
-		add_to_prs(prs, tmp);//faire
+		add_to_prs(prs, tmp);
 		free(tmp);
 	}
-	treat_map(e, prs);//faire
+	treat_map(e, prs);
+	free_prs(prs);
 }
 
 t_env	*init_env(char *file)
@@ -92,13 +198,34 @@ t_env	*init_env(char *file)
 	int		fd;
 
 	if ((fd =  open(file, O_RDONLY, 0777)) == -1)
-		error_fd(-3);
+		error_fdf(-3);
 	if ((new = (t_env *)malloc(sizeof(*new))) == NULL)
-		error_fd(-2);
+		error_fdf(-2);
 	new->mlx = mlx_init();
-	new->win = mlx_new_window(mlx, WIDTH, HEIGHT, "42");
+	new->win = mlx_new_window(new->mlx, WIDTH, HEIGHT, "42");
+	new->y = 0;
+	new->x = 0;
 	init_map(new, fd);
 	return (new);
+}
+
+void	debug_1(t_env *e)//non
+{
+	int		x;
+	int		y;
+
+	y = 0;
+	printf("x=%d\ny=%d\nmod=%d\nmz=%d\n", e->x, e->y, e->mod, e->mz);
+	while (y < e->y)
+	{
+		x = 0;
+		while (x < e->x)
+		{
+			printf("m[%d][%d] x(%d) y(%d) z(%d)\n", y, x, e->m[y][x].x, e->m[y][x].y, e->m[y][x].z);
+			x++;
+		}
+		y++;
+	}
 }
 
 int		main(int argc, char **argv)
@@ -108,6 +235,8 @@ int		main(int argc, char **argv)
 	if (argc != 2)
 		error_fdf(-1);
 	e = init_env(argv[1]);
+	debug_1(e);//non
+	return (0);
 }
 
 /*
