@@ -2,7 +2,7 @@
 #ifndef FDF_H
 # define FDF_H
 
-# define HEIGHT 840
+# define HEIGHT 680
 # define WIDTH 1080
 
 typedef struct		s_lex
@@ -38,11 +38,9 @@ typedef struct		s_env
 	void			*mlx;
 	void			*win;
 	int				x;
-//	int				mx;
 	int				y;
 	int				mod;
 	int				mz;
-//	int				my;
 	t_map			**m;
 }					t_env;
 

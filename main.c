@@ -48,6 +48,56 @@ int		pixel_to_img(t_img *img, int x, int y, unsigned int color)
 	return (0);
 }
 
+void	ligne_x(t_map p1, t_map p2, t_img *i, t_env *e)
+{
+	int		x;
+
+	x = p1.x;
+	while (x < p2.x)
+	{
+		pixel_to_img(i, x, p1.y, mlx_get_color_value(e->mlx, 0x00FF00));
+		x++;
+	}
+}
+
+void	ligne_y(t_map p1, t_map p2, t_img *i, t_env *e)
+{
+	int		y;
+
+	y = p1.y;
+	while (y < p2.y)
+	{
+		pixel_to_img(i, p1.x, y, mlx_get_color_value(e->mlx, 0x00FF00));
+		y++;
+	}
+}
+
+void	draw_map(t_env *e)
+{
+	int		x;
+	int		y;
+	void	*img;
+	t_img	i;
+
+	y = 0;
+	img = mlx_new_image(e->mlx, WIDTH, HEIGHT);
+	i.data = mlx_get_data_addr(img, &(i.bpp), &(i.sl), &(i.end));
+	while (y < e->y)
+	{
+		x = 0;
+		while (x < e->x)
+		{
+			if ((x + 1) < e->x)
+				ligne_x(e->m[y][x], e->m[y][x + 1], &i, e);
+			if ((y + 1) < e->y)
+				ligne_y(e->m[y][x], e->m[y + 1][x], &i, e);
+			x++;
+		}
+		y++;
+	}
+	mlx_put_image_to_window (e->mlx, e->win, img, 0, 0);
+}
+
 int		error_fdf(int code)
 {
 	if (code == -1)
@@ -101,7 +151,7 @@ void	init_line(t_env *e, int y, char **tab)
 	while (tab[x] && x < e->x)
 	{
 		val = ft_atoi(tab[x]);
-		if (val < 0 || val > 10)
+		if (val < 0)
 			error_fdf(-4);
 		e->m[y][x].z = val * e->mz;
 		e->m[y][x].x = (x + 1) * e->mod;
@@ -228,6 +278,19 @@ void	debug_1(t_env *e)//non
 	}
 }
 
+int		key_hook(int keycode, t_env *e)
+{
+	if (keycode == 65307)
+		exit(0);
+	return (0);
+}
+
+int		expose_hook(t_env *e)
+{
+	draw_map(e);
+	return (0);
+}
+
 int		main(int argc, char **argv)
 {
 	t_env		*e;
@@ -236,6 +299,9 @@ int		main(int argc, char **argv)
 		error_fdf(-1);
 	e = init_env(argv[1]);
 	debug_1(e);//non
+	mlx_key_hook(e->win, key_hook, e);
+	mlx_expose_hook(e->win, expose_hook, e);
+	mlx_loop(e->mlx);
 	return (0);
 }
 
