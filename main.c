@@ -48,16 +48,123 @@ int		pixel_to_img(t_img *img, int x, int y, unsigned int color)
 	return (0);
 }
 
-void	ligne_x(t_map p1, t_map p2, t_img *i, t_env *e)
+int		print_pt(t_img *i, t_env *e, int x, int y)
 {
-	int		x;
+	if (x >= 0 && x <= WIDTH && y >= 0 && y <= HEIGHT)
+		pixel_to_img(i, x, y, mlx_get_color_value(e->mlx, 0x00FF00));
+}
 
+int		mk_abs(int x)
+{
+	if (x < 0)
+		x = x * -1;
+	return (x);
+}
+
+typedef struct		s_point
+{
+	int				x;
+	int				y;
+}					t_point;
+
+t_point	get_point(t_map p_1)//a modifier
+{
+	t_point		ret;
+
+	ret.x = p_1.x;
+	ret.y = p_1.y;
+	return (ret);
+}
+
+void	mod_pt(t_point *p1, t_point *p2)
+{
+	int		tmp;
+
+	tmp = p1->x;
+	p1->x = p1->y;
+	p1->y = tmp;
+	tmp = p2->x;
+	p2->x = p2->y;
+	p2->y = tmp;
+}
+
+void	line_a(t_img *i, t_env *e, t_point p1, t_point p2)
+{
+	int		d;
+	int		xinc;
+	int		x;
+	int		y;
+
+	if (p1.y > p2.y)
+		mod_pt(&p1, &p2);
+	xinc = p2.x > p1.x ? 1 : -1;
+	d = 2 * mk_abs(p2.x - p1.x) - (p2.y - p1.y);
 	x = p1.x;
-	while (x < p2.x)
+	y = p1.y;
+	print_pt(i, e, x, y);
+	while (y++ <= p2.y)
 	{
-		pixel_to_img(i, x, p1.y, mlx_get_color_value(e->mlx, 0x00FF00));
-		x++;
+		if (d >= 0)
+		{
+			x += xinc;
+			d += 2 * (mk_abs(p2.x - p1.x) - (p2.y - p1.y));
+		}
+		else
+			d = d + 2 * mk_abs(p2.x - p1.x);
+		print_pt(i, e, x ,y);
 	}
+}
+
+void	line_b(t_img *i, t_env *e, t_point p1, t_point p2)
+{
+	int		d;
+	int		yinc;
+	int		x;
+	int		y;
+
+	if (p1.x > p2.x)
+		mod_pt(&p1, &p2);
+	yinc = p2.y > p1.y ? 1 : -1;
+	d = 2 * mk_abs(p2.y - p1.y) - (p2.x - p1.x);
+	x = p1.x;
+	y = p1.y;
+	print_pt(i, e, x, y);
+	while (x++ <= p2.x)
+	{
+		if (d >= 0)
+		{
+			y += yinc;
+			d += 2 * (mk_abs(p2.y - p1.y) - (p2.x - p1.x));
+		}
+		else
+			d = d + 2 * mk_abs(p2.y - p1.y);
+		print_pt(i, e, x ,y);
+	}
+}
+
+void	draw_line(t_map p_1, t_map p_2, t_img *i, t_env *e)
+{
+	t_point		p1;
+	t_point		p2;
+
+	p1 = get_point(p_1);
+	p2 = get_point(p_2);
+//	draw_line(i, e, p1, p2);
+	if (mk_abs(p2.x - p1.x) < mk_abs(p2.y - p1.y))
+		line_a(i, e, p1, p2);
+	else
+		line_b(i, e, p1, p2);
+}
+/*
+void	ligne_x(t_map p_1, t_map p_2, t_img *i, t_env *e)
+{
+//	int		x;
+//	x = p1.x;
+//	while (x < p2.x)
+//	{
+//		pixel_to_img(i, x, p1.y, mlx_get_color_value(e->mlx, 0x00FF00));
+//		x++;
+//	}
 }
 
 void	ligne_y(t_map p1, t_map p2, t_img *i, t_env *e)
@@ -71,7 +178,7 @@ void	ligne_y(t_map p1, t_map p2, t_img *i, t_env *e)
 		y++;
 	}
 }
-
+*/
 void	draw_map(t_env *e)
 {
 	int		x;
@@ -88,9 +195,9 @@ void	draw_map(t_env *e)
 		while (x < e->x)
 		{
 			if ((x + 1) < e->x)
-				ligne_x(e->m[y][x], e->m[y][x + 1], &i, e);
+				draw_line(e->m[y][x], e->m[y][x + 1], &i, e);
 			if ((y + 1) < e->y)
-				ligne_y(e->m[y][x], e->m[y + 1][x], &i, e);
+				draw_line(e->m[y][x], e->m[y + 1][x], &i, e);
 			x++;
 		}
 		y++;
